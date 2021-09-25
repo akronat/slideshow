@@ -12,6 +12,7 @@ function createWindow() {
     maximize: () => win.isMaximized() ? win.unmaximize() : win.maximize(),
     close: () => win.close(),
     openDevTools: () => win.webContents.openDevTools(),
+    userDataPath: (e) => { e.returnValue = app.getPath('userData') },
   };
 
   const win = new BrowserWindow({

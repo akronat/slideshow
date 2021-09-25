@@ -12,17 +12,16 @@ import SlideshowState from '../api/SlideshowState';
 import ContentData from '../api/ContentData';
 import { getFileContentSource, getFileEntryContentSource } from '../api/FileContentSource';
 import ContentSource from '../api/ContentSource';
+import { getSetting, Settings, setSetting } from '../api/Settings';
+import SlideState from '../api/SlideState';
+import SlideshowTimer from '../api/SlideshowTimer';
+import { getUrlContentSource } from '../api/UrlContentSource';
 
 import DragAndDrop from './DragAndDrop';
 import ControlBar from './ControlBar';
 import WindowSizeWrapper from './hooks/WindowSizeWrapper';
 import Slider from './Slider';
 import ContentRenderer from './ContentRenderer';
-import SlideState from '../api/SlideState';
-import SlideshowTimer from '../api/SlideshowTimer';
-import { getUrlContentSource } from '../api/UrlContentSource';
-import TransitionStyle from '../api/TransitionStyle';
-import DisplayStyle from '../api/DisplayStyle';
 import isElectron from '../util/isElectron';
 import TitleBar from './TitleBar';
 
@@ -109,14 +108,14 @@ class SlideshowMain extends React.Component<Props, State> {
     this.state = {
       ssController: undefined,
       ssState: {
-        displayStyle: DisplayStyle.Standard,
+        displayStyle: getSetting(Settings.displayStyle),
         isBorderless: false,
         isFullscreen: false,
         isPlaying: false,
-        isShuffled: false,
-        speed: 3,
-        volume: 0, // Mute by default, but allow user to adjust volume later in controls.
-        transitionStyle: TransitionStyle.Fade,
+        isShuffled: getSetting(Settings.isShuffled),
+        speed: getSetting(Settings.speed),
+        volume: getSetting(Settings.volume),
+        transitionStyle: getSetting(Settings.transitionStyle),
       },
       data: undefined,
       showControls: false,
@@ -141,6 +140,11 @@ class SlideshowMain extends React.Component<Props, State> {
   updateSsState(newSsState: Partial<SlideshowState>) {
     const { ssState } = this.state;
     this.setState({ ssState: { ...ssState, ...newSsState }});
+    if (newSsState.displayStyle) setSetting(Settings.displayStyle, newSsState.displayStyle);
+    if (newSsState.isShuffled) setSetting(Settings.isShuffled, newSsState.isShuffled);
+    if (newSsState.speed) setSetting(Settings.speed, newSsState.speed);
+    if (newSsState.transitionStyle) setSetting(Settings.transitionStyle, newSsState.transitionStyle);
+    if (newSsState.volume) setSetting(Settings.volume, newSsState.volume);
   }
 
   enterFullscreen = () => {
@@ -251,7 +255,7 @@ class SlideshowMain extends React.Component<Props, State> {
       this.exitFullscreen();
       this.handlePlainSssChange({ isBorderless: false });
     }
-    else if (e.key === 'F12' && isElectron) global.electronIpc.send('openDevTools');
+    else if (e.key === 'F12' && isElectron()) global.electronIpc?.send('openDevTools');
     else {
       handled = false;
       // console.log('Unknown key pressed:', e);
