@@ -70,9 +70,10 @@ const ContentRenderer: React.FC<Props> = ({
   }, [data, onSourceInvalid]);
 
   const contentSize = data.getSize();
+  const contentType = data.getType();
   const displaySize = new Size(rootRef.current?.clientWidth || 1, rootRef.current?.clientHeight || 1);
   React.useEffect(() => {
-    if (isActive && displayStyle === DisplayStyle.ZoomPan) {
+    if (isActive && displayStyle === DisplayStyle.ZoomPan && contentType === ContentType.Image) {
       const zoomer = new ContentZoomPan(
         new Size(contentSize.width, contentSize.height),
         new Size(displaySize.width, displaySize.height),
@@ -82,7 +83,7 @@ const ContentRenderer: React.FC<Props> = ({
       zoomer.start();
       return () => zoomer.stop();
     }
-  }, [isActive, displayStyle, duration, displaySize.width, displaySize.height, contentSize.width, contentSize.height]);
+  }, [isActive, displayStyle, duration, displaySize.width, displaySize.height, contentSize.width, contentSize.height, contentType]);
 
   const imgVidClassName = classnames(classes.content, {
     [classes.contentStretch]: displayStyle === DisplayStyle.Stretch,
@@ -91,9 +92,9 @@ const ContentRenderer: React.FC<Props> = ({
   let content = null;
   if (error) return content = <span>Error loading {data.contentSource.name}: {error}</span>;
   else if (!dataUrl) return <span>Loading...</span>;
-  else if (data.getType() === ContentType.Image) {
+  else if (contentType === ContentType.Image) {
     content = <img className={imgVidClassName} src={dataUrl} alt="" style={transform} />;
-  } else if (data.getType() === ContentType.Video) {
+  } else if (contentType === ContentType.Video) {
     const playPauseOnMount = (vid: HTMLVideoElement | null) => {
       if (vid && vid.paused && isActive) {
         vid.play();
