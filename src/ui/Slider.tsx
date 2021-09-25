@@ -17,6 +17,7 @@ const styles = ({ palette, spacing }: Theme) => createStyles({
   slider: {
     width: '100%',
     height: '100%',
+    position: 'relative',
   },
   slide: {
     width: '100%',
@@ -59,12 +60,7 @@ const Slider: React.FC<Props> = ({
   transitionStyle = TransitionStyle.Slide,
 }) => {
   const [swipePanX, setSwipePanX] = React.useState<number>(0);
-  const [height, setHeight] = React.useState(0);
   const rootRef = React.useRef<HTMLDivElement>(null);
-  React.useLayoutEffect(
-    () => setHeight(rootRef.current?.clientHeight ?? 0),
-    [rootRef.current?.clientHeight],
-  );
 
   const handlePan: HammerListener = (e) => {
     if (rootRef.current) {
@@ -111,7 +107,6 @@ const Slider: React.FC<Props> = ({
         })}
         key={slideIndex + offset}
         style={{
-          height,
           transform: `translateX(${translate}%)`,
           opacity,
           zIndex: opacity === 0 ? 0 : 1,
