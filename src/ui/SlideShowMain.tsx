@@ -5,6 +5,7 @@ import { createStyles, withStyles, WithStyles, Theme } from '@material-ui/core/s
 
 import listFileEntries from '../util/listFileEntries';
 import promiseAny from '../util/promiseAny';
+import arrayUnique from '../util/arrayUnique';
 
 import SlideshowController from '../api/SlideshowController';
 import SlideshowState from '../api/SlideshowState';
@@ -15,10 +16,14 @@ import ContentSource from '../api/ContentSource';
 import DragAndDrop from './DragAndDrop';
 import Controls from './Controls';
 import WindowSizeWrapper from './Hooks/WindowSizeWrapper';
-import arrayUnique from '../util/arrayUnique';
+import Slider from './Slider';
 import ContentRenderer from './ContentRenderer';
+import SlideState from '../api/SlideState';
+import SlideshowTimer from '../api/SlideshowTimer';
 
-const showControlsDuration = 4000;
+const ShowControlsDuration = 4000;
+const PreloadCount = 1;
+const CacheSize = PreloadCount * 2 + 3;
 
 
 const controlsHeight = 60;
@@ -45,7 +50,7 @@ const styles = ({ palette, spacing }: Theme) => createStyles({
     backgroundColor: 'black',
   },
   controlsFullscreen: {
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.7)',
     position: 'absolute',
     bottom: -controlsHeight,
     transitionProperty: 'bottom',
@@ -63,11 +68,14 @@ interface State {
   ssController: SlideshowController | undefined;
   ssState: SlideshowState;
   data: ContentData | undefined;
-  showControlsTimeout: NodeJS.Timeout | undefined;
+  showControls: boolean;
+  slideIndex: number;
 }
 
 class SlideshowMain extends React.Component<Props, State> {
   rootRef: React.RefObject<HTMLDivElement>;
+  showControlsTimeout: NodeJS.Timeout | undefined;
+  slideshowTimer: SlideshowTimer;
 
   constructor(props: Props) {
     super(props);
@@ -81,8 +89,11 @@ class SlideshowMain extends React.Component<Props, State> {
         speed: 3,
       },
       data: undefined,
-      showControlsTimeout: undefined,
+      showControls: false,
+      slideIndex: 0,
     };
+    this.slideshowTimer = new SlideshowTimer();
+    this.slideshowTimer.onNext = this.handleNext;
     this.rootRef = React.createRef<HTMLDivElement>();
   }
 
@@ -92,10 +103,9 @@ class SlideshowMain extends React.Component<Props, State> {
   }
 
   componentWillUnmount() {
-    const { ssController } = this.state;
     document.removeEventListener('keyup', this.handleKeyUp);
     document.removeEventListener('fullscreenchange', this.handleFullscreenChange);
-    ssController?.stop();
+    this.slideshowTimer.stop();
   }
 
   updateSsState(newSsState: Partial<SlideshowState>) {
@@ -115,35 +125,33 @@ class SlideshowMain extends React.Component<Props, State> {
   }
 
   handlePause = () => {
-    const { ssController } = this.state;
-    ssController?.stop();
+    this.slideshowTimer.stop();
     this.updateSsState({ isPlaying: false });
     this.showControls();
   }
 
   handlePlay = () => {
-    const { ssController } = this.state;
-    if (ssController) {
-      ssController.start();
-      this.updateSsState({ isPlaying: true });
-    }
+    this.slideshowTimer.start();
+    this.updateSsState({ isPlaying: true });
     this.showControls();
   }
 
   handleShuffleChange = (shuffle: boolean) => {
-    const { ssController } = this.state;
+    const { ssController, slideIndex } = this.state;
+    const startAtSid = ssController?.getDataForIndex(slideIndex).contentSource.id;
+    const startAtIndex = slideIndex + CacheSize;
     if (shuffle) {
-      ssController?.shuffle();
+      ssController?.shuffle({ startAtSid, startAtIndex });
     } else {
-      ssController?.unshuffle();
+      ssController?.unshuffle({ startAtSid, startAtIndex });
     }
     this.updateSsState({ isShuffled: shuffle });
     this.showControls();
+    this.setSlideIndex(startAtIndex);
   }
 
   handleSpeedChange = (speed: number) => {
-    const { ssController } = this.state;
-    ssController?.setSpeed(speed);
+    this.slideshowTimer.setSpeed(speed);
     this.updateSsState({ speed });
   }
 
@@ -153,10 +161,13 @@ class SlideshowMain extends React.Component<Props, State> {
   }
 
   showControls = () => {
-    const { showControlsTimeout, ssState } = this.state;
-    if (showControlsTimeout) clearTimeout(showControlsTimeout);
+    const { showControls, ssState } = this.state;
+    if (this.showControlsTimeout) clearTimeout(this.showControlsTimeout);
     if (ssState.isFullscreen) {
-      this.setState({ showControlsTimeout: setTimeout(this.handleShowControlsTimeout, showControlsDuration)});
+      this.showControlsTimeout = setTimeout(this.handleShowControlsTimeout, ShowControlsDuration);
+      if (!showControls) {
+        this.setState({ showControls: true });
+      }
     }
   }
 
@@ -168,7 +179,7 @@ class SlideshowMain extends React.Component<Props, State> {
     const fileItems = Array.from(items).filter(i => i.kind === 'file');
     const files = await listFileEntries(...fileItems.map(i => i.webkitGetAsEntry()));
     const { values, reasons } = await promiseAny(files.map(f => getFileEntryContentSource(f)));
-    reasons.forEach(r => console.log(`Error adding file: ${r}`));
+    reasons.forEach(r => console.error(`Error adding file: ${r}`));
     this.addNewSources(values);
   }
 
@@ -177,19 +188,19 @@ class SlideshowMain extends React.Component<Props, State> {
   }
 
   handleKeyUp = (e: KeyboardEvent) => {
-    const { ssController, ssState } = this.state;
+    const { ssState } = this.state;
     let handled = true;
-    if (e.key === 'ArrowLeft') ssController?.back();
+    if (e.key === 'ArrowLeft') this.handlePrevious();
     else if (e.key === ' ' && !ssState.isPlaying) this.handlePlay();
     else if (e.key === ' ' && ssState.isPlaying) this.handlePause();
-    else if (e.key === 'ArrowRight') ssController?.next();
+    else if (e.key === 'ArrowRight') this.handleNext();
     else if (e.key === 'Enter' && !ssState.isFullscreen) this.enterFullscreen();
     else if (e.key === 'Enter' && ssState.isFullscreen) this.exitFullscreen();
     else if (e.key === 'f' && !ssState.isFullscreen) this.enterFullscreen();
     else if (e.key === 'f' && ssState.isFullscreen) this.exitFullscreen();
     else {
       handled = false;
-      console.log('Unknown key pressed:', e);
+      // console.log('Unknown key pressed:', e);
     }
     if (handled) {
       e.preventDefault();
@@ -198,36 +209,59 @@ class SlideshowMain extends React.Component<Props, State> {
   };
 
   handleShowControlsTimeout = () => {
-    this.setState({ showControlsTimeout: undefined });
+    this.setState({ showControls: false });
+  }
+
+  handleNext = () => {
+    this.setSlideIndex(this.state.slideIndex + 1);
+  }
+
+  handlePrevious = () => {
+    this.setSlideIndex(this.state.slideIndex - 1);
   }
 
   addNewSources(sources: ContentSource[]) {
-    const { ssController, ssState, data } = this.state;
-    ssController?.stop();
-    const curSid = data?.contentSource.id;
+    const { ssController, ssState, slideIndex } = this.state;
+    this.slideshowTimer.stop();
+    const startAtSid = ssController?.getDataForIndex(slideIndex).contentSource.id;
+    const startAtIndex = slideIndex + CacheSize;
+    ssController?.cleanup();
     const newSources = arrayUnique([...(ssController?.sources ?? []), ...sources], s => s.id);
-    const newSsc = new SlideshowController(newSources, curSid);
-    newSsc.onDataChange = (data: ContentData) => this.setState({ data });
-
-    this.setState({ data: undefined, ssController: newSsc });
-    newSsc.next();
+    const newSsc = new SlideshowController(newSources, { cacheSize: CacheSize, startAtSid, startAtIndex });
+    this.slideshowTimer.getData = index => newSsc.getDataForIndex(index);
     if (ssState.isShuffled) {
-      newSsc.shuffle();
+      newSsc.shuffle({ startAtSid, startAtIndex });
     }
     if (ssState.isPlaying) {
-      newSsc.start();
+      this.slideshowTimer.start();
     }
+    this.setState({
+      data: undefined,
+      ssController: newSsc,
+    });
+    this.setSlideIndex(startAtIndex);
+  }
+
+  setSlideIndex(index: number) {
+    this.setState({ slideIndex: index });
+    this.slideshowTimer.setIndex(index);
+  }
+
+  renderSlideContent = ({ index, isActive }: SlideState) => {
+    const { ssController, ssState } = this.state;
+    return ssController && <ContentRenderer data={ssController.getDataForIndex(index)} stretch={ssState.isStretched} isActive={isActive} />
   }
 
   render() {
     const { classes } = this.props;
-    const { ssController, ssState, data, showControlsTimeout } = this.state;
+    const { ssState, showControls, slideIndex } = this.state;
     return (
       <WindowSizeWrapper>
         {(width, height) =>(
           <div
             className={classes.slideshow}
             onMouseMove={this.showControls}
+            onMouseDown={this.showControls}
             ref={this.rootRef}
             style={{ width, height }}
           >
@@ -239,19 +273,26 @@ class SlideshowMain extends React.Component<Props, State> {
               }}
             >
               <DragAndDrop className={classes.dragDrop} onDrop={this.handleDrop}>
-                <ContentRenderer data={data} stretch={ssState.isStretched} />
+                <Slider
+                  onNext={this.handleNext}
+                  onBack={this.handlePrevious}
+                  slideContentRenderer={this.renderSlideContent}
+                  slideIndex={slideIndex}
+                  preloadCount={PreloadCount}
+                  transitionStyle="slide"
+                />
               </DragAndDrop>
             </div>
             <Controls
               className={classnames(classes.controls, {
                 [classes.controlsFullscreen]: ssState.isFullscreen,
-                [classes.controlsFullscreenTransition]: ssState.isFullscreen && showControlsTimeout,
+                [classes.controlsFullscreenTransition]: ssState.isFullscreen && showControls,
               })}
               state={ssState}
-              onNext={() => ssController?.next()}
+              onNext={this.handleNext}
               onPlay={this.handlePlay}
               onPause={this.handlePause}
-              onBack={() => ssController?.back()}
+              onBack={this.handlePrevious}
               onEnterFullscreen={this.enterFullscreen}
               onExitFullscreen={this.exitFullscreen}
               onShuffleChange={this.handleShuffleChange}

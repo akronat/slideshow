@@ -20,24 +20,47 @@ const styles = ({ palette, spacing }: Theme) => createStyles({
 
 interface Props extends WithStyles<typeof styles> {
   className?: string;
-  data?: ContentData;
+  data: ContentData;
+  isActive: boolean;
   stretch?: boolean;
 }
 const ContentRenderer: React.FC<Props> = ({
-  classes, className, data, stretch = false,
+  classes, className, data, isActive, stretch = false,
 }) => {
+  const [dataUrl, setDataUrl] = React.useState('');
+  const [error, setError] = React.useState('');
+  React.useEffect(() => {
+    const onLoad = (err: string | undefined, url: string | undefined) => {
+      setDataUrl(url ?? '');
+      setError(err ?? '');
+    };
+    data.load(onLoad);
+    return () => {
+      data.cancelLoad(onLoad);
+    };
+  }, [data]);
   const imgVidClassName = classnames(classes.content, { [classes.contentStretch]: stretch });
-  if (data?.type === ContentType.Image) {
-    return <img className={imgVidClassName} src={data.data ?? ''} alt="" />;
+  if (error) return <div>Error loading {data.contentSource.name}: {error}</div>;
+  if (!dataUrl) return <div>Loading...</div>;
+  if (data.getType() === ContentType.Image) {
+    return <img className={imgVidClassName} src={dataUrl} alt="" />;
   }
-  if (data?.type === ContentType.Video) {
+  if (data.getType() === ContentType.Video) {
+    const playPauseOnMount = (vid: HTMLVideoElement | null) => {
+      if (vid && vid.paused && isActive) {
+        vid.play();
+      } else if (vid && !vid.paused && !isActive) {
+        vid.pause();
+      }
+    };
     return <video
+      autoPlay={isActive}
       className={imgVidClassName}
-      src={data.data ?? ''}
-      autoPlay
       loop
-      // muted={true}
-      // onEnded={e => slide?.onVideoEnded?.(e.currentTarget)}
+      muted={true} // TODO: Mute by default, but allow user to adjust volume later in controls?
+      preload="auto"
+      ref={playPauseOnMount}
+      src={dataUrl}
     />;
   }
   return <div></div>;

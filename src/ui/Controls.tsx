@@ -1,7 +1,7 @@
 import React from 'react';
 import classnames from 'classnames';
 
-import { createStyles, withStyles, WithStyles, Theme } from '@material-ui/core/styles';
+import { createStyles, withStyles, WithStyles } from '@material-ui/core/styles';
 import IconButton from '@material-ui/core/IconButton';
 import Slider from '@material-ui/core/Slider';
 import Badge from '@material-ui/core/Badge';
@@ -22,7 +22,7 @@ import SlideshowState from '../api/SlideshowState';
 import isMobile from '../util/isMobile';
 
 
-const styles = ({ palette, spacing }: Theme) => createStyles({
+const styles = () => createStyles({
   root: {
     backgroundColor: 'black',
     display: 'flex',
@@ -31,6 +31,7 @@ const styles = ({ palette, spacing }: Theme) => createStyles({
     '&>*': {
       flex: '1 1 0',
     },
+    zIndex: 1000,
   },
   navControls: {
     display: 'flex',

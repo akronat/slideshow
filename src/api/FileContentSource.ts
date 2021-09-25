@@ -3,27 +3,16 @@ import ContentSource from './ContentSource';
 class FileContentSource implements ContentSource {
   file: File;
   id: string;
-  isAccessable: boolean;
+  name: string;
 
-  constructor(id: string, file: File, isAccessable: boolean) {
-    this.file = file;
+  constructor(id: string, file: File) {
     this.id = id;
-    this.isAccessable = isAccessable;
+    this.name = file.name;
+    this.file = file;
   }
-
-  async loadData(): Promise<string> {
-    return new Promise<string>((res, rej) => {
-      const reader = new FileReader();
-      reader.onload = async e => {
-        if (e.target?.result && typeof e.target.result === 'string') {
-          res(e.target.result);
-        } else {
-          rej(`Failed to read valid data from ${this.file.name}.`);
-        }
-      }
-      reader.onerror = e => rej(`Error reading ${this.file.name}: ${e.target?.error}`);
-      reader.readAsDataURL(this.file);
-    });
+  
+  getObjectUrl() {
+    return URL.createObjectURL(this.file);
   }
 }
 
@@ -33,5 +22,5 @@ export const getFileEntryContentSource = async (fileEntry: FileEntry): Promise<F
 };
 
 export const getFileContentSource = (file: File): FileContentSource => {
-    return new FileContentSource(btoa(`${file.name}:${file.size}`), file, true);
+    return new FileContentSource(`${file.name}:${file.size}`, file);
 };

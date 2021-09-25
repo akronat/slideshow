@@ -1,89 +1,47 @@
+import buildArray from '../util/buildArray';
+import LruCache from '../util/LruCache';
+import modulo from '../util/modulo';
 import shuffleList from '../util/shuffleList';
 import ContentData from './ContentData';
 import ContentSource from './ContentSource';
 
-const SpeedDelay = [25000, 15000, 10000, 5000, 2000];
+interface StartAt {
+  startAtSid?: string;
+  startAtIndex?: number;
+}
+interface Options extends StartAt {
+  cacheSize?: number;
+}
 
 class SlideshowController {
-  sources: ContentSource[] = [];
-  playlist: number[] = [];
-  onDataChange: (dataUrl: ContentData) => void = () => {};
-  
-  private index: number = -1;
-  private data: ContentData | undefined;
-  private timeout: NodeJS.Timeout | null = null;
-  private speed: number = 3;
+  readonly sources: ContentSource[] = [];
+  private playlist: number[] = [];
+  private cache: LruCache<string, ContentData>;
 
-  constructor(sources: ContentSource[], startAtSid?: string) {
+  private indexOffset: number = 0;
+
+  constructor(sources: ContentSource[], { startAtSid, cacheSize = 10, startAtIndex = 0 }: Options = {}) {
     this.sources = sources;
-    this.playlist = Array(sources.length).fill(0).map((v, i) => i);
-    this.index = Math.max(-1, sources.findIndex(s => s.id === startAtSid) - 1);
+    this.playlist = buildArray(sources.length, i => i);
+    this.indexOffset = Math.max(0, sources.findIndex(s => s.id === startAtSid)) - startAtIndex;
+    this.cache = new LruCache({ max: cacheSize, onEviction: (id, cd) => cd.cleanup() });
   }
 
-  private handleTimeout = () => {
-    this.next();
-  }
-
-  isPlaying() {
-    return !!this.timeout;
-  }
-
-  start() {
-    this.stop();
-    const delay = this.calculateDuration();
-    this.timeout = setTimeout(this.handleTimeout, delay);
-  }
-
-  private calculateDuration(): number {
-    const stdDuration = SpeedDelay[this.speed - 1];
-    const vidDuration = (this.data?.length || 0) * 1000;
-    return Math.max(stdDuration, vidDuration);
-  }
-
-  stop() {
-    if (this.timeout) {
-      clearTimeout(this.timeout);
-      this.timeout = null;
+  getDataForIndex(index: number) {
+    const plIndex = modulo(index + this.indexOffset, this.playlist.length);
+    const source = this.sources[this.playlist[plIndex]];
+    let data = this.cache.get(source.id);
+    if (data) {
+      return data;
     }
+    data = new ContentData(source);
+    this.cache.set(source.id, data);
+    return data;
   }
 
-  next() {
-    if (!this.playlist.length) return;
-    if (this.index < 0) this.index = -1;
-    this.changeImage(1, this.isPlaying());
+  cleanup() {
+    this.cache.clear();
   }
-
-  back() {
-    if (!this.playlist.length) return;
-    if (this.index < 0) this.index = 0;
-    this.changeImage(-1, this.isPlaying());
-  }
-
-  private changeImage = (direction: 1 | -1, isPlaying: boolean) => {
-    this.stop();
-    this.index = (this.playlist.length + this.index + direction) % this.playlist.length;
-    const fileIndex = this.playlist[this.index];
-    const data = new ContentData(this.sources[fileIndex]);
-    data.load().then(() => {
-      this.data = data;
-      if (isPlaying) {
-        this.start();
-      }
-      this.onDataChange(data);
-    }).catch((reason) => {
-      console.error(reason);
-      setTimeout(() => this.changeImage(direction, isPlaying), 0);
-    });
-  }
-
-  setSpeed(speed: number) {
-    this.speed = speed;
-    if (this.timeout) {
-      this.stop();
-      this.start();
-    }
-  }
-  
 
   private ratePow(rating: number) {
     if (rating === 0) {
@@ -92,12 +50,12 @@ class SlideshowController {
     return Math.pow(2, rating - 1);
   }
 
-  shuffle() {
-    const currentFileIndex = this.playlist[this.index];
-    const ratings = this.sources.map(f => /*f.GetMetaData().rating*/ 3);
+  shuffle({ startAtIndex = 0, startAtSid }: StartAt) {
+    const currentFileIndex = this.sources.findIndex(s => s.id === startAtSid);
+    const ratings = this.sources.map(f => 3 /*f.GetMetaData().rating*/);
     const maxRating = ratings.reduce((p, c) => Math.max(p, c))  ;
     const numSeqs = this.ratePow(maxRating);
-    const instances = Array(this.sources.length).fill(0).map(() => Array(numSeqs).fill(false));
+    const instances = buildArray(this.sources.length, () => Array(numSeqs).fill(false));
     for (let i = 0; i < this.sources.length; i++) {
       let count = 0;
       const numWanted = Math.min(numSeqs, this.ratePow(ratings[i]));
@@ -116,9 +74,11 @@ class SlideshowController {
       }
     }
 
-    // Prevent the current slide from showing up in the first section, since
-    // it's already showing and we'll add it to the front of the list soon.
-    instances[currentFileIndex][0] = false;
+    if (currentFileIndex >= 0) {
+      // Prevent the current slide from showing up in the first section, since
+      // it's already showing and we'll add it to the front of the list soon.
+      instances[currentFileIndex][0] = false;
+    }
 
     const allSections: number[] = [];
     let section: number[];
@@ -133,17 +93,15 @@ class SlideshowController {
       allSections.push(...section);
     }
     this.playlist = allSections;
-    this.playlist.unshift(currentFileIndex);
-    this.index = 0;
-
-    // TODO: Reload any next/previous preload stuff once implemented!
+    if (currentFileIndex >= 0) {
+      this.playlist.unshift(currentFileIndex);
+    }
+    this.indexOffset = -startAtIndex
   }
 
-  unshuffle() {
-    this.index = this.playlist[this.index];
-    this.playlist = Array(this.sources.length).fill(0).map((v, i) => i);
-
-    // TODO: Reload any next/previous preload stuff once implemented!
+  unshuffle({ startAtIndex = 0, startAtSid }: StartAt) {
+    this.indexOffset = Math.max(0, this.sources.findIndex(s => s.id === startAtSid)) - startAtIndex;
+    this.playlist = buildArray(this.sources.length, i => i);
   }
 }
 
