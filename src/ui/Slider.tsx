@@ -6,6 +6,7 @@ import { createStyles, withStyles, WithStyles, Theme } from '@material-ui/core/s
 import SliderSlide from './SliderSlide';
 import buildArray from '../util/buildArray';
 import SlideState from '../api/SlideState';
+import TransitionStyle from '../api/TransitionStyle';
 
 const styles = ({ palette, spacing }: Theme) => createStyles({
   root: {
@@ -24,11 +25,11 @@ const styles = ({ palette, spacing }: Theme) => createStyles({
   },
   slideFadeTransition: {
     // TODO: Calculate transition duration based on flock velocity when flick occurs?
-    transition: `opacity 400ms cubic-bezier(0.5, 0, 0.5, 1)`,
+    transition: 'opacity 400ms', // cubic-bezier(0.5, 0, 0.5, 1)',
   },
   slideSlideTransition: {
     // TODO: Calculate transition duration based on flock velocity when flick occurs?
-    transition: `transform 200ms cubic-bezier(0.5, 0, 0.5, 1)`,
+    transition: 'transform 200ms', // cubic-bezier(0.5, 0, 0.5, 1)`,
   },
   slideInstantTransition: {},
 });
@@ -44,7 +45,7 @@ interface Props extends WithStyles<typeof styles> {
   panSensitivity?: number;
   /** Minimum flick velocity to trigger slide change */
   flickSensitivity?: number;
-  transitionStyle?: 'slide' | 'fade' | 'instant';
+  transitionStyle?: TransitionStyle;
 }
 const Slider: React.FC<Props> = ({
   classes, className,
@@ -55,7 +56,7 @@ const Slider: React.FC<Props> = ({
   onBack = () => {},
   panSensitivity = 25,
   flickSensitivity = 1.0,
-  transitionStyle = 'slide',
+  transitionStyle = TransitionStyle.Slide,
 }) => {
   const [swipePanX, setSwipePanX] = React.useState<number>(0);
   const [height, setHeight] = React.useState(0);
@@ -86,12 +87,9 @@ const Slider: React.FC<Props> = ({
 
   const renderSlide = (slideNum: number) => {
     const offset = slideNum - preloadCount;
-    let translate = 0;
-    if (transitionStyle === 'slide') {
-      translate = swipePanX + offset * 100;
-    }
+    const translate = swipePanX + offset * 100;
     let opacity = 1;
-    if (transitionStyle === 'fade') {
+    if (transitionStyle === TransitionStyle.Fade) {
       if (offset === 0) {
         opacity = 1 - (Math.abs(swipePanX) / 100);
       } else if (offset * Math.sign(swipePanX) === -1) {
@@ -100,16 +98,16 @@ const Slider: React.FC<Props> = ({
       } else {
         opacity = 0;
       }
-    } else if (transitionStyle === 'instant') {
+    } else if (transitionStyle === TransitionStyle.Instant) {
       opacity = offset === 0 ? 1 : 0;
     }
 
     return (
       <div
         className={classnames(classes.slide, {
-          [classes.slideFadeTransition]: !swipePanX && transitionStyle === 'fade',
-          [classes.slideInstantTransition]: !swipePanX && transitionStyle === 'instant',
-          [classes.slideSlideTransition]: !swipePanX && transitionStyle === 'slide',
+          [classes.slideFadeTransition]: !swipePanX && transitionStyle === TransitionStyle.Fade,
+          [classes.slideInstantTransition]: !swipePanX && transitionStyle === TransitionStyle.Instant,
+          [classes.slideSlideTransition]: !swipePanX && transitionStyle === TransitionStyle.Slide,
         })}
         key={slideIndex + offset}
         style={{

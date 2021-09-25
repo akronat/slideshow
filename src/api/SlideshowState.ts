@@ -1,3 +1,4 @@
+import TransitionStyle from './TransitionStyle';
 
 type SlideshowState = {
   isPlaying: boolean;
@@ -5,6 +6,8 @@ type SlideshowState = {
   isStretched: boolean;
   isShuffled: boolean;
   speed: number;
+  volume: number;
+  transitionStyle: TransitionStyle;
 };
 
 export default SlideshowState;

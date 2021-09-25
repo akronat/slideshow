@@ -23,9 +23,10 @@ interface Props extends WithStyles<typeof styles> {
   data: ContentData;
   isActive: boolean;
   stretch?: boolean;
+  volume?: number;
 }
 const ContentRenderer: React.FC<Props> = ({
-  classes, className, data, isActive, stretch = false,
+  classes, className, data, isActive, stretch = false, volume = 0,
 }) => {
   const [dataUrl, setDataUrl] = React.useState('');
   const [error, setError] = React.useState('');
@@ -57,7 +58,7 @@ const ContentRenderer: React.FC<Props> = ({
       autoPlay={isActive}
       className={imgVidClassName}
       loop
-      muted={true} // TODO: Mute by default, but allow user to adjust volume later in controls?
+      muted={volume === 0}
       preload="auto"
       ref={playPauseOnMount}
       src={dataUrl}

@@ -21,6 +21,7 @@ import ContentRenderer from './ContentRenderer';
 import SlideState from '../api/SlideState';
 import SlideshowTimer from '../api/SlideshowTimer';
 import { getUrlContentSource } from '../api/UrlContentSource';
+import TransitionStyle from '../api/TransitionStyle';
 
 const ShowControlsDuration = 4000;
 const PreloadCount = 1;
@@ -88,6 +89,8 @@ class SlideshowMain extends React.Component<Props, State> {
         isStretched: false,
         isShuffled: false,
         speed: 3,
+        volume: 0, // Mute by default, but allow user to adjust volume later in controls.
+        transitionStyle: TransitionStyle.Fade,
       },
       data: undefined,
       showControls: false,
@@ -154,10 +157,21 @@ class SlideshowMain extends React.Component<Props, State> {
   handleSpeedChange = (speed: number) => {
     this.slideshowTimer.setSpeed(speed);
     this.updateSsState({ speed });
+    this.showControls();
   }
 
   handleStretchChange = (stretch: boolean) => {
     this.updateSsState({ isStretched: stretch });
+    this.showControls();
+  }
+
+  handleTransitionStyleChange = (style: TransitionStyle) => {
+    this.updateSsState({ transitionStyle: style });
+    this.showControls();
+  }
+
+  handleVolumeChange = (volume: number) => {
+    this.updateSsState({ volume });
     this.showControls();
   }
 
@@ -266,7 +280,12 @@ class SlideshowMain extends React.Component<Props, State> {
 
   renderSlideContent = ({ index, isActive }: SlideState) => {
     const { ssController, ssState } = this.state;
-    return ssController && <ContentRenderer data={ssController.getDataForIndex(index)} stretch={ssState.isStretched} isActive={isActive} />
+    return ssController && <ContentRenderer
+      data={ssController.getDataForIndex(index)}
+      stretch={ssState.isStretched}
+      volume={ssState.volume}
+      isActive={isActive}
+    />
   }
 
   render() {
@@ -296,7 +315,7 @@ class SlideshowMain extends React.Component<Props, State> {
                   slideContentRenderer={this.renderSlideContent}
                   slideIndex={slideIndex}
                   preloadCount={PreloadCount}
-                  transitionStyle="slide"
+                  transitionStyle={ssState.transitionStyle}
                 />
               </DragAndDrop>
             </div>
@@ -305,6 +324,7 @@ class SlideshowMain extends React.Component<Props, State> {
                 [classes.controlsFullscreen]: ssState.isFullscreen,
                 [classes.controlsFullscreenTransition]: ssState.isFullscreen && showControls,
               })}
+              screenWidth={width}
               state={ssState}
               onNext={this.handleNext}
               onPlay={this.handlePlay}
@@ -314,6 +334,8 @@ class SlideshowMain extends React.Component<Props, State> {
               onExitFullscreen={this.exitFullscreen}
               onShuffleChange={this.handleShuffleChange}
               onSpeedChange={this.handleSpeedChange}
+              onTransitionStyleChange={this.handleTransitionStyleChange}
+              onVolumeChange={this.handleVolumeChange}
               onStretchChange={this.handleStretchChange}
               onFilesAdded={this.handleFilesAdded}
               onUrlsAdded={this.handleUrlsAdded}
