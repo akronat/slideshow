@@ -13,10 +13,20 @@ const styles = ({ palette, spacing }: Theme) => createStyles({
   titlebar: {
     display: 'flex',
     alignItems: 'center',
-    '-webkitUserSelect': 'none',
-    '-webkitAppRegion': 'drag',
+    userSelect: 'none',
     backgroundColor: palette.controlPanel.main,
     justifyContent: 'space-between',
+    position: 'relative',
+  },
+  dragRegion: {
+    top: 6,
+    left: 6,
+    display: 'block',
+    position: 'absolute',
+    width: 'calc(100% - 12px)',
+    height: 'calc(100% - 6px)',
+    zIndex: -1,
+    appRegion: 'drag',
   },
   section: {
     display: 'flex',
@@ -28,7 +38,7 @@ const styles = ({ palette, spacing }: Theme) => createStyles({
   },
   button: {
     borderRadius: 0,
-    '-webkitAppRegion': 'no-drag',
+    appRegion: 'no-drag',
   },
   closeButton: {
     '&:hover': {
@@ -47,6 +57,7 @@ const TitleBar: React.FC<Props> = ({
   slideTitle,
 }) => (
   <div className={classnames(className, classes.titlebar)}>
+    <div className={classes.dragRegion}></div>
     <div className={classes.section}>
       <img className={classes.logo} src={`${process.env.PUBLIC_URL}/logo192.png`} alt="" />
       <Typography display="inline" variant="subtitle1">Slideshow</Typography>
