@@ -39,16 +39,15 @@ import TransitionStyle from '../api/TransitionStyle';
 
 const SIZE_THRESHOLDS = [800, 600];
 
-const styles = () => createStyles({
+const styles = ({ palette, spacing }: Theme) => createStyles({
   root: {
-    backgroundColor: 'black',
+    backgroundColor: palette.controlPanel.main,
     display: 'flex',
     justifyContent: 'space-evenly',
     alignItems: 'center',
     '&>*': {
       flex: '1 1 0',
     },
-    zIndex: 1000,
   },
   sideContainer: {
     display: 'flex',
@@ -109,7 +108,7 @@ interface Props extends WithStyles<typeof styles> {
   onFilesAdded?: (files: File[]) => void;
   onUrlsAdded?: (files: string[]) => void;
 }
-const Controls: React.FC<Props> = ({
+const ControlBar: React.FC<Props> = ({
   classes, className, screenWidth = 0, state,
   onNext = () => {},
   onPlay = () => {},
@@ -288,4 +287,4 @@ const Controls: React.FC<Props> = ({
   );
 };
 
-export default withStyles(styles)(Controls);
+export default withStyles(styles)(ControlBar);

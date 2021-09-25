@@ -1,9 +1,9 @@
 import TransitionStyle from './TransitionStyle';
 
 type SlideshowState = {
-  isPlaying: boolean;
+  isBorderless: boolean;
   isFullscreen: boolean;
-  isStretched: boolean;
+  isPlaying: boolean;
   isShuffled: boolean;
   speed: number;
   volume: number;

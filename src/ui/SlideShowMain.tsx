@@ -14,7 +14,7 @@ import { getFileContentSource, getFileEntryContentSource } from '../api/FileCont
 import ContentSource from '../api/ContentSource';
 
 import DragAndDrop from './DragAndDrop';
-import Controls from './Controls';
+import ControlBar from './ControlBar';
 import WindowSizeWrapper from './Hooks/WindowSizeWrapper';
 import Slider from './Slider';
 import ContentRenderer from './ContentRenderer';
@@ -22,22 +22,45 @@ import SlideState from '../api/SlideState';
 import SlideshowTimer from '../api/SlideshowTimer';
 import { getUrlContentSource } from '../api/UrlContentSource';
 import TransitionStyle from '../api/TransitionStyle';
+import isElectron from '../util/isElectron';
+import TitleBar from './TitleBar';
 
 const ShowControlsDuration = 4000;
 const PreloadCount = 1;
 const CacheSize = PreloadCount * 2 + 3;
 
 
+const titlebarHeight = 30;
 const controlsHeight = 60;
+
 const styles = ({ palette, spacing }: Theme) => createStyles({
+  titlebar: {
+    height: titlebarHeight,
+    width: '100%',
+    backgroundColor: palette.controlPanel.main,
+    zIndex: 1000,
+  },
+  titlebarHideable: {
+    backgroundColor: palette.controlPanelOverlay.main,
+    position: 'absolute',
+    top: -titlebarHeight,
+    transitionProperty: 'top',
+    transitionDuration: '1.0s',
+  },
+  titlebarHideableShow: {
+    bottom: 'unset',
+    top: 0,
+    transitionDuration: '0.1s',
+  },
   slideshow: {
     backgroundColor: 'black',
     display: 'flex',
     flexFlow: 'column',
+    overflow: 'hidden',
   },
   mainArea: {
     width: '100%',
-    height: `calc(100% - ${controlsHeight}px)`,
+    height: '100%',
     flexGrow: 1,
   },
   dragDrop: {
@@ -49,16 +72,17 @@ const styles = ({ palette, spacing }: Theme) => createStyles({
     height: controlsHeight,
     flexGrow: 0,
     flexShrink: 0,
-    backgroundColor: 'black',
+    backgroundColor: palette.controlPanel.main,
+    zIndex: 1000,
   },
-  controlsFullscreen: {
-    backgroundColor: 'rgba(0,0,0,0.7)',
+  controlsHideable: {
+    backgroundColor: palette.controlPanelOverlay.main,
     position: 'absolute',
     bottom: -controlsHeight,
     transitionProperty: 'bottom',
     transitionDuration: '1.0s',
   },
-  controlsFullscreenTransition: {
+  controlsHideableShow: {
     top: 'unset',
     bottom: 0,
     transitionDuration: '0.1s',
@@ -84,9 +108,9 @@ class SlideshowMain extends React.Component<Props, State> {
     this.state = {
       ssController: undefined,
       ssState: {
-        isPlaying: false,
+        isBorderless: false,
         isFullscreen: false,
-        isStretched: false,
+        isPlaying: false,
         isShuffled: false,
         speed: 3,
         volume: 0, // Mute by default, but allow user to adjust volume later in controls.
@@ -160,25 +184,15 @@ class SlideshowMain extends React.Component<Props, State> {
     this.showControls();
   }
 
-  handleStretchChange = (stretch: boolean) => {
-    this.updateSsState({ isStretched: stretch });
-    this.showControls();
-  }
-
-  handleTransitionStyleChange = (style: TransitionStyle) => {
-    this.updateSsState({ transitionStyle: style });
-    this.showControls();
-  }
-
-  handleVolumeChange = (volume: number) => {
-    this.updateSsState({ volume });
+  handlePlainSssChange = (state: Partial<SlideshowState>) => {
+    this.updateSsState(state);
     this.showControls();
   }
 
   showControls = () => {
-    const { showControls, ssState } = this.state;
+    const { showControls } = this.state;
     if (this.showControlsTimeout) clearTimeout(this.showControlsTimeout);
-    if (ssState.isFullscreen) {
+    if (this.constrolsHideable()) {
       this.showControlsTimeout = setTimeout(this.handleShowControlsTimeout, ShowControlsDuration);
       if (!showControls) {
         this.setState({ showControls: true });
@@ -227,8 +241,15 @@ class SlideshowMain extends React.Component<Props, State> {
     else if (e.key === 'ArrowRight') this.handleNext();
     else if (e.key === 'Enter' && !ssState.isFullscreen) this.enterFullscreen();
     else if (e.key === 'Enter' && ssState.isFullscreen) this.exitFullscreen();
+    else if (e.key === '\\') this.handlePlainSssChange({ isBorderless: !ssState.isBorderless });
+    else if (e.key === 'F11') this.handlePlainSssChange({ isBorderless: !ssState.isBorderless });
     else if (e.key === 'f' && !ssState.isFullscreen) this.enterFullscreen();
     else if (e.key === 'f' && ssState.isFullscreen) this.exitFullscreen();
+    else if (e.key === 'Escape') {
+      this.exitFullscreen();
+      this.handlePlainSssChange({ isBorderless: false });
+    }
+    else if (e.key === 'F12' && isElectron) global.electronIpc.send('openDevTools');
     else {
       handled = false;
       // console.log('Unknown key pressed:', e);
@@ -288,6 +309,11 @@ class SlideshowMain extends React.Component<Props, State> {
     />
   }
 
+  constrolsHideable() {
+    const { ssState } = this.state;
+    return ssState.isFullscreen || ssState.isBorderless;
+  }
+
   render() {
     const { classes } = this.props;
     const { ssState, showControls, slideIndex } = this.state;
@@ -301,6 +327,13 @@ class SlideshowMain extends React.Component<Props, State> {
             ref={this.rootRef}
             style={{ width, height }}
           >
+            {isElectron() && <TitleBar
+              className={classnames(classes.titlebar, {
+                [classes.titlebarHideable]: this.constrolsHideable(),
+                [classes.titlebarHideableShow]: this.constrolsHideable() && showControls,
+              })}
+              slideTitle={ssController?.getDataForIndex(slideIndex).contentSource.name}
+            />}
             <div
               className={classes.mainArea}
               onDoubleClick={() => {
@@ -319,10 +352,10 @@ class SlideshowMain extends React.Component<Props, State> {
                 />
               </DragAndDrop>
             </div>
-            <Controls
+            <ControlBar
               className={classnames(classes.controls, {
-                [classes.controlsFullscreen]: ssState.isFullscreen,
-                [classes.controlsFullscreenTransition]: ssState.isFullscreen && showControls,
+                [classes.controlsHideable]: this.constrolsHideable(),
+                [classes.controlsHideableShow]: this.constrolsHideable() && showControls,
               })}
               screenWidth={width}
               state={ssState}
@@ -334,8 +367,8 @@ class SlideshowMain extends React.Component<Props, State> {
               onExitFullscreen={this.exitFullscreen}
               onShuffleChange={this.handleShuffleChange}
               onSpeedChange={this.handleSpeedChange}
-              onTransitionStyleChange={this.handleTransitionStyleChange}
-              onVolumeChange={this.handleVolumeChange}
+              onTransitionStyleChange={(transitionStyle) => this.handlePlainSssChange({ transitionStyle })}
+              onVolumeChange={(volume) => this.handlePlainSssChange({ volume })}
               onStretchChange={this.handleStretchChange}
               onFilesAdded={this.handleFilesAdded}
               onUrlsAdded={this.handleUrlsAdded}
