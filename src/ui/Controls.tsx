@@ -2,9 +2,16 @@ import React from 'react';
 import classnames from 'classnames';
 
 import { createStyles, withStyles, WithStyles } from '@material-ui/core/styles';
+import Badge from '@material-ui/core/Badge';
+import Button from '@material-ui/core/Button';
+import Dialog from '@material-ui/core/Dialog';
+import DialogActions from '@material-ui/core/DialogActions';
+import DialogContent from '@material-ui/core/DialogContent';
+import DialogContentText from '@material-ui/core/DialogContentText';
+import DialogTitle from '@material-ui/core/DialogTitle';
 import IconButton from '@material-ui/core/IconButton';
 import Slider from '@material-ui/core/Slider';
-import Badge from '@material-ui/core/Badge';
+import TextField from '@material-ui/core/TextField';
 
 import PlayArrowIcon from '@material-ui/icons/PlayArrow';
 import PauseIcon from '@material-ui/icons/Pause';
@@ -16,7 +23,7 @@ import FullscreenExitIcon from '@material-ui/icons/FullscreenExit';
 import HeightIcon from '@material-ui/icons/Height';
 import MenuIcon from '@material-ui/icons/Menu';
 import ImageIcon from '@material-ui/icons/Image';
-import FolderOpenIcon from '@material-ui/icons/FolderOpen';
+import LinkIcon from '@material-ui/icons/Link';
 
 import SlideshowState from '../api/SlideshowState';
 import isMobile from '../util/isMobile';
@@ -68,7 +75,8 @@ interface Props extends WithStyles<typeof styles> {
   onShuffleChange?: (shuffle: boolean) => void;
   onStretchChange?: (stretch: boolean) => void;
   onSpeedChange?: (speed: number) => void;
-  onFilesLoaded?: (files: File[]) => void;
+  onFilesAdded?: (files: File[]) => void;
+  onUrlsAdded?: (files: string[]) => void;
 }
 const Controls: React.FC<Props> = ({
   classes, className, state,
@@ -81,8 +89,11 @@ const Controls: React.FC<Props> = ({
   onShuffleChange = () => {},
   onStretchChange = () => {},
   onSpeedChange = () => {},
-  onFilesLoaded = () => {},
+  onFilesAdded = () => {},
+  onUrlsAdded = () => {},
 }) => {
+  const [linkInputOpen, setLinkInputOpen] = React.useState(false);
+  const [linkUrls, setLinkUrls] = React.useState<string[]>([]);
   const tmpInput = document.createElement('input');
   const dirPropName = ['webkitdirectory', 'mozdirectory', 'odirectory', 'msdirectory', 'directory'].find(p => p in tmpInput);
   return (
@@ -98,7 +109,7 @@ const Controls: React.FC<Props> = ({
                 type="file"
                 hidden
                 multiple
-                onChange={ev => onFilesLoaded(Array.from(ev.target.files as ArrayLike<File>))}
+                  onChange={ev => onFilesAdded(Array.from(ev.target.files as ArrayLike<File>))}
                 // NOTE: Firefox Android requires the dom.webkitBlink.dirPicker.enabled
                 // option to be set to true in about:config to allow picking of directories
                 {...{ [dirPropName || 'multiple']: '' }}
@@ -111,10 +122,47 @@ const Controls: React.FC<Props> = ({
               type="file"
               hidden
               multiple
-              onChange={ev => onFilesLoaded(Array.from(ev.target.files as ArrayLike<File>))}
+                onChange={ev => onFilesAdded(Array.from(ev.target.files as ArrayLike<File>))}
             />
             <Badge badgeContent={'+'}><ImageIcon /></Badge>
           </IconButton>
+          <IconButton component="label" onClick={() => setLinkInputOpen(true)}>
+            <Badge badgeContent={'+'}><LinkIcon /></Badge>
+          </IconButton>
+          <Dialog onClose={() => setLinkInputOpen(false)} open={linkInputOpen}>
+            <DialogTitle>Enter URLs to add</DialogTitle>
+            <DialogContent>
+              <DialogContentText>
+                URLs can be for media, or for compilations of media, such as a pastebin with a URL on each line.
+              </DialogContentText>
+              <TextField
+                autoFocus
+                fullWidth
+                id="urls"
+                label="URLs"
+                margin="dense"
+                onChange={e => setLinkUrls(e.target.value.split('\n'))}
+                placeholder="https://example.com"
+                multiline
+                type="url"
+                value={linkUrls.join('\n')}
+              />
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={() => setLinkInputOpen(false)} color="primary">
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  onUrlsAdded(linkUrls);
+                  setLinkInputOpen(false);
+                }}
+                color="primary"
+              >
+                Add
+              </Button>
+            </DialogActions>
+          </Dialog>
         </div>
         <div>
           <IconButton

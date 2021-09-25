@@ -13,7 +13,7 @@ interface Options extends StartAt {
   cacheSize?: number;
 }
 
-class SlideshowController {
+class SlideManager {
   readonly sources: ContentSource[] = [];
   private playlist: number[] = [];
   private cache: LruCache<string, ContentData>;
@@ -105,4 +105,4 @@ class SlideshowController {
   }
 }
 
-export default SlideshowController;
+export default SlideManager;

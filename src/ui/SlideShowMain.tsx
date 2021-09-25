@@ -7,7 +7,7 @@ import listFileEntries from '../util/listFileEntries';
 import promiseAny from '../util/promiseAny';
 import arrayUnique from '../util/arrayUnique';
 
-import SlideshowController from '../api/SlideshowController';
+import SlideManager from '../api/SlideManager';
 import SlideshowState from '../api/SlideshowState';
 import ContentData from '../api/ContentData';
 import { getFileContentSource, getFileEntryContentSource } from '../api/FileContentSource';
@@ -20,6 +20,7 @@ import Slider from './Slider';
 import ContentRenderer from './ContentRenderer';
 import SlideState from '../api/SlideState';
 import SlideshowTimer from '../api/SlideshowTimer';
+import { getUrlContentSource } from '../api/UrlContentSource';
 
 const ShowControlsDuration = 4000;
 const PreloadCount = 1;
@@ -65,7 +66,7 @@ const styles = ({ palette, spacing }: Theme) => createStyles({
 
 interface Props extends WithStyles<typeof styles> {}
 interface State {
-  ssController: SlideshowController | undefined;
+  ssController: SlideManager | undefined;
   ssState: SlideshowState;
   data: ContentData | undefined;
   showControls: boolean;
@@ -183,8 +184,24 @@ class SlideshowMain extends React.Component<Props, State> {
     this.addNewSources(values);
   }
 
-  handleFilesLoaded = (files: File[]) => {
+  handleFilesAdded = (files: File[]) => {
     this.addNewSources(files.map(f => getFileContentSource(f)));
+  }
+
+  handleUrlsAdded = async (urls: string[]) => {
+    // const types = await Promise.all(urls.map(fetchUrlMimeType));
+    // const newSources: ContentSource[] = [];
+    // types.forEach((type, i) => {
+    //   if (type.startsWith('image/')) {
+    //     newSources.push(getUrlContentSource(urls[i]));
+    //   } else if (type === 'text/plain') {
+    //     console.log('Loading compilation files not yet supported...');
+    //   } else {
+    //     console.warn(`Unknown content type of URL ${urls[i]}: ${type}`);
+    //   }
+    // });
+    // this.addNewSources(newSources);
+    this.addNewSources(urls.map(getUrlContentSource));
   }
 
   handleKeyUp = (e: KeyboardEvent) => {
@@ -227,7 +244,7 @@ class SlideshowMain extends React.Component<Props, State> {
     const startAtIndex = slideIndex + CacheSize;
     ssController?.cleanup();
     const newSources = arrayUnique([...(ssController?.sources ?? []), ...sources], s => s.id);
-    const newSsc = new SlideshowController(newSources, { cacheSize: CacheSize, startAtSid, startAtIndex });
+    const newSsc = new SlideManager(newSources, { cacheSize: CacheSize, startAtSid, startAtIndex });
     this.slideshowTimer.getData = index => newSsc.getDataForIndex(index);
     if (ssState.isShuffled) {
       newSsc.shuffle({ startAtSid, startAtIndex });
@@ -298,7 +315,8 @@ class SlideshowMain extends React.Component<Props, State> {
               onShuffleChange={this.handleShuffleChange}
               onSpeedChange={this.handleSpeedChange}
               onStretchChange={this.handleStretchChange}
-              onFilesLoaded={this.handleFilesLoaded}
+              onFilesAdded={this.handleFilesAdded}
+              onUrlsAdded={this.handleUrlsAdded}
             />
           </div>
         )}
