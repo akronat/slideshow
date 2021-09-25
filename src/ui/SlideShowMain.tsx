@@ -8,11 +8,11 @@ import promiseAny from '../util/promiseAny';
 import arrayUnique from '../util/arrayUnique';
 
 import SlideManager from '../api/SlideManager';
-import SlideshowState from '../api/SlideshowState';
+import SlideshowState, { saveSlideshowStateToSettings } from '../api/SlideshowState';
 import ContentData from '../api/ContentData';
 import { getFileContentSource, getFileEntryContentSource } from '../api/FileContentSource';
 import ContentSource from '../api/ContentSource';
-import { getSetting, Settings, setSetting } from '../api/Settings';
+import { getSetting, Settings } from '../api/Settings';
 import SlideState from '../api/SlideState';
 import SlideshowTimer from '../api/SlideshowTimer';
 import { getUrlContentSource } from '../api/UrlContentSource';
@@ -143,11 +143,7 @@ class SlideshowMain extends React.Component<Props, State> {
   updateSsState(newSsState: Partial<SlideshowState>) {
     const { ssState } = this.state;
     this.setState({ ssState: { ...ssState, ...newSsState }});
-    if (newSsState.displayStyle) setSetting(Settings.displayStyle, newSsState.displayStyle);
-    if (newSsState.isShuffled) setSetting(Settings.isShuffled, newSsState.isShuffled);
-    if (newSsState.speed) setSetting(Settings.speed, newSsState.speed);
-    if (newSsState.transitionStyle) setSetting(Settings.transitionStyle, newSsState.transitionStyle);
-    if (newSsState.volume) setSetting(Settings.volume, newSsState.volume);
+    saveSlideshowStateToSettings(newSsState);
   }
 
   enterFullscreen = () => {
