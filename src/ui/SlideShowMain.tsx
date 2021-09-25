@@ -87,6 +87,9 @@ const styles = ({ palette, spacing }: Theme) => createStyles({
     bottom: 0,
     transitionDuration: '0.1s',
   },
+  hideMouse: {
+    cursor: 'none',
+  },
 });
 
 interface Props extends WithStyles<typeof styles> {}
@@ -329,7 +332,9 @@ class SlideshowMain extends React.Component<Props, State> {
       <WindowSizeWrapper>
         {(size) =>(
           <div
-            className={classes.slideshow}
+            className={classnames(classes.slideshow, {
+              [classes.hideMouse]: this.constrolsHideable() && !showControls,
+            })}
             onMouseMove={this.showControls}
             onMouseDown={this.showControls}
             ref={this.rootRef}
