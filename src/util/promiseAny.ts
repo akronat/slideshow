@@ -1,4 +1,3 @@
-
 type PromiseAnyResult<T> = {
   /** The values of the fulfilled promises */
   values: T[];
@@ -17,7 +16,7 @@ async function promiseAny<T>(promises: Promise<T>[]): Promise<PromiseAnyResult<T
       reasons.push(r.reason);
     }
   });
-  return { values, reasons }
-};
+  return { values, reasons };
+}
 
 export default promiseAny;
