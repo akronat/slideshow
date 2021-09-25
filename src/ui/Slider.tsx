@@ -26,11 +26,11 @@ const styles = ({ palette, spacing }: Theme) => createStyles({
   },
   slideFadeTransition: {
     // TODO: Calculate transition duration based on flock velocity when flick occurs?
-    transition: 'opacity 400ms', // cubic-bezier(0.5, 0, 0.5, 1)',
+    transition: 'opacity 400ms ease', // cubic-bezier(0.5, 0, 0.5, 1)',
   },
   slideSlideTransition: {
     // TODO: Calculate transition duration based on flock velocity when flick occurs?
-    transition: 'transform 200ms', // cubic-bezier(0.5, 0, 0.5, 1)`,
+    transition: 'transform 200ms ease-out', // cubic-bezier(0.5, 0, 0.5, 1)`,
   },
   slideInstantTransition: {},
 });

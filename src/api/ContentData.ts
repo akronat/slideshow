@@ -1,3 +1,4 @@
+import Size from '../util/Size';
 import ContentSource from './ContentSource';
 import ContentType from './ContentType';
 
@@ -22,6 +23,7 @@ class ContentData {
   private objectUrl: string | undefined;
   private type: ContentType | undefined;
   private duration: number = 0;
+  private size: Size = new Size(0, 0);
   private state: 'new' | 'loading' | 'loaded' = 'new';
   private onLoaded: OnContentDataLoaded[] = [];
   
@@ -52,6 +54,10 @@ class ContentData {
     return this.duration;
   }
 
+  getSize() {
+    return this.size;
+  }
+
   isLoaded() {
     return this.state === 'loaded';
   }
@@ -78,13 +84,16 @@ class ContentData {
   private async doLoad() {
     if (this.state !== 'new') return;
     this.state = 'loading';
-    if (await createImage(this.getUrl())) {
+    const image = await createImage(this.getUrl());
+    if (image) {
       this.type = ContentType.Image;
+      this.size = new Size(image.naturalWidth, image.naturalHeight);
     } else {
       const video = await createVideo(this.getUrl());
       if (video) {
         this.duration = video.duration;
         this.type = ContentType.Video;
+        this.size = new Size(video.videoWidth, video.videoHeight);
       }
     }
   }

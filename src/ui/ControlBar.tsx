@@ -1,7 +1,7 @@
 import React from 'react';
 import classnames from 'classnames';
 
-import { createStyles, withStyles, WithStyles } from '@material-ui/core/styles';
+import { createStyles, withStyles, WithStyles, Theme } from '@material-ui/core/styles';
 import Badge from '@material-ui/core/Badge';
 import Button from '@material-ui/core/Button';
 import Dialog from '@material-ui/core/Dialog';
@@ -14,7 +14,10 @@ import Slider from '@material-ui/core/Slider';
 import TextField from '@material-ui/core/TextField';
 
 import AddIcon from '@material-ui/icons/Add';
+import ArrowRightAltIcon from '@material-ui/icons/ArrowRightAlt';
 import BlurOnIcon from '@material-ui/icons/BlurOn';
+import ControlCameraIcon from '@material-ui/icons/ControlCamera';
+import CropOriginalIcon from '@material-ui/icons/CropOriginal';
 import FlashOnIcon from '@material-ui/icons/FlashOn';
 import FolderOpenIcon from '@material-ui/icons/FolderOpen';
 import FullscreenIcon from '@material-ui/icons/Fullscreen';
@@ -36,6 +39,7 @@ import SlideshowState from '../api/SlideshowState';
 import isMobile from '../util/isMobile';
 import MenuCollapser from './MenuCollapser';
 import TransitionStyle from '../api/TransitionStyle';
+import DisplayStyle from '../api/DisplayStyle';
 
 const SIZE_THRESHOLDS = [800, 600];
 
@@ -78,6 +82,18 @@ const styles = ({ palette, spacing }: Theme) => createStyles({
   },
 });
 
+const displayStyleIcons = {
+  [DisplayStyle.Standard]: CropOriginalIcon,
+  [DisplayStyle.Stretch]: HeightIcon,
+  [DisplayStyle.ZoomPan]: ControlCameraIcon,
+};
+
+const displayStyleSequence = {
+  [DisplayStyle.Standard]: DisplayStyle.Stretch,
+  [DisplayStyle.Stretch]: DisplayStyle.ZoomPan,
+  [DisplayStyle.ZoomPan]: DisplayStyle.Standard,
+};
+
 const transitionStyleIcons = {
   [TransitionStyle.Fade]: BlurOnIcon,
   [TransitionStyle.Slide]: SwapHorizIcon,
@@ -100,8 +116,8 @@ interface Props extends WithStyles<typeof styles> {
   onBack?: () => void;
   onEnterFullscreen?: () => void;
   onExitFullscreen?: () => void;
+  onDisplayStyleChange?: (style: DisplayStyle) => void;
   onShuffleChange?: (shuffle: boolean) => void;
-  onStretchChange?: (stretch: boolean) => void;
   onSpeedChange?: (speed: number) => void;
   onTransitionStyleChange?: (style: TransitionStyle) => void;
   onVolumeChange?: (volume: number) => void;
@@ -117,7 +133,7 @@ const ControlBar: React.FC<Props> = ({
   onEnterFullscreen = () => {},
   onExitFullscreen = () => {},
   onShuffleChange = () => {},
-  onStretchChange = () => {},
+  onDisplayStyleChange = () => {},
   onSpeedChange = () => {},
   onTransitionStyleChange = () => {},
   onVolumeChange = () => {},
@@ -129,7 +145,8 @@ const ControlBar: React.FC<Props> = ({
   const tmpInput = document.createElement('input');
   const dirPropName = ['webkitdirectory', 'mozdirectory', 'odirectory', 'msdirectory', 'directory'].find(p => p in tmpInput);
   const size = screenWidth && SIZE_THRESHOLDS.reduce((p, c, i) => screenWidth <= c ? i : p, -1);
-  const TransitionIcon = transitionStyleIcons[state.transitionStyle];
+  const DisplayStyleIcon = displayStyleIcons[state.displayStyle];
+  const TransitionStyleIcon = transitionStyleIcons[state.transitionStyle];
   return (
     <div className={classnames(classes.root, className)}>
       <div className={classes.sideContainer}>
@@ -231,22 +248,22 @@ const ControlBar: React.FC<Props> = ({
             }}
           >
           <IconButton
-            color={state.isShuffled ? 'primary' : undefined}
             onClick={() => onShuffleChange(!state.isShuffled)}
+            title={state.isShuffled ? 'Shuffled' : 'Unshuffled'}
           >
-            <ShuffleIcon />
+            {state.isShuffled ? <ShuffleIcon /> : <ArrowRightAltIcon />}
           </IconButton>
           <IconButton
-            color={state.isStretched ? 'primary' : undefined}
-            onClick={() => onStretchChange(!state.isStretched)}
+            onClick={() => onDisplayStyleChange(displayStyleSequence[state.displayStyle])}
+            title={DisplayStyle[state.displayStyle]}
           >
-            <HeightIcon />
+            <DisplayStyleIcon />
           </IconButton>
             <IconButton
-              // color={state.transitionStyle }
               onClick={() => onTransitionStyleChange(transitionStyleSequence[state.transitionStyle])}
+              title={TransitionStyle[state.transitionStyle]}
             >
-              <TransitionIcon />
+              <TransitionStyleIcon />
             </IconButton>
           </MenuCollapser>
         </div>

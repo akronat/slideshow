@@ -28,7 +28,7 @@ class SlideshowTimer {
     this.startedAt = new Date();
     this.data = this.getData(this.index);
     if (!this.data?.isLoaded()) {
-      this.data?.load(this.handleDataLoaded)
+      this.data?.load(this.handleDataLoaded);
     }
     this.updateTimer();
   }
@@ -55,20 +55,24 @@ class SlideshowTimer {
     }
   }
 
+  slideDuration(): number {
+    const stdDuration = SpeedDelay[this.speed - 1];
+    const vidDuration = (this.data?.getDuration() ?? 0) * 1000;
+    return Math.max(stdDuration, vidDuration);
+  }
+
   private handleDataLoaded = () => {
     this.updateTimer();
   }
 
   private updateTimer() {
     clearTimeout(this.timeout);
-    const delay = this.calculateDuration();
+    const delay = this.calculateRemainingDuration();
     this.timeout = window.setTimeout(this.onNext, delay);
   }
 
-  private calculateDuration(): number {
-    const stdDuration = SpeedDelay[this.speed - 1];
-    const vidDuration = (this.data?.getDuration() ?? 0) * 1000;
-    return Math.max(stdDuration, vidDuration) - (+new Date() - +this.startedAt);
+  private calculateRemainingDuration(): number {
+    return this.slideDuration() - (+new Date() - +this.startedAt);
   }
 
 }

@@ -15,13 +15,14 @@ import ContentSource from '../api/ContentSource';
 
 import DragAndDrop from './DragAndDrop';
 import ControlBar from './ControlBar';
-import WindowSizeWrapper from './Hooks/WindowSizeWrapper';
+import WindowSizeWrapper from './hooks/WindowSizeWrapper';
 import Slider from './Slider';
 import ContentRenderer from './ContentRenderer';
 import SlideState from '../api/SlideState';
 import SlideshowTimer from '../api/SlideshowTimer';
 import { getUrlContentSource } from '../api/UrlContentSource';
 import TransitionStyle from '../api/TransitionStyle';
+import DisplayStyle from '../api/DisplayStyle';
 import isElectron from '../util/isElectron';
 import TitleBar from './TitleBar';
 
@@ -108,6 +109,7 @@ class SlideshowMain extends React.Component<Props, State> {
     this.state = {
       ssController: undefined,
       ssState: {
+        displayStyle: DisplayStyle.Standard,
         isBorderless: false,
         isFullscreen: false,
         isPlaying: false,
@@ -303,9 +305,10 @@ class SlideshowMain extends React.Component<Props, State> {
     const { ssController, ssState } = this.state;
     return ssController && <ContentRenderer
       data={ssController.getDataForIndex(index)}
-      stretch={ssState.isStretched}
-      volume={ssState.volume}
+      duration={isActive ? this.slideshowTimer.slideDuration() : undefined}
       isActive={isActive}
+      displayStyle={ssState.displayStyle}
+      volume={ssState.volume}
     />
   }
 
@@ -316,16 +319,16 @@ class SlideshowMain extends React.Component<Props, State> {
 
   render() {
     const { classes } = this.props;
-    const { ssState, showControls, slideIndex } = this.state;
+    const { ssState, showControls, slideIndex, ssController } = this.state;
     return (
       <WindowSizeWrapper>
-        {(width, height) =>(
+        {(size) =>(
           <div
             className={classes.slideshow}
             onMouseMove={this.showControls}
             onMouseDown={this.showControls}
             ref={this.rootRef}
-            style={{ width, height }}
+            style={{ width: size.width, height: size.height }}
           >
             {isElectron() && <TitleBar
               className={classnames(classes.titlebar, {
@@ -357,7 +360,7 @@ class SlideshowMain extends React.Component<Props, State> {
                 [classes.controlsHideable]: this.constrolsHideable(),
                 [classes.controlsHideableShow]: this.constrolsHideable() && showControls,
               })}
-              screenWidth={width}
+              screenWidth={size.width}
               state={ssState}
               onNext={this.handleNext}
               onPlay={this.handlePlay}
@@ -365,11 +368,11 @@ class SlideshowMain extends React.Component<Props, State> {
               onBack={this.handlePrevious}
               onEnterFullscreen={this.enterFullscreen}
               onExitFullscreen={this.exitFullscreen}
+              onDisplayStyleChange={(displayStyle) => this.handlePlainSssChange({ displayStyle })}
               onShuffleChange={this.handleShuffleChange}
               onSpeedChange={this.handleSpeedChange}
               onTransitionStyleChange={(transitionStyle) => this.handlePlainSssChange({ transitionStyle })}
               onVolumeChange={(volume) => this.handlePlainSssChange({ volume })}
-              onStretchChange={this.handleStretchChange}
               onFilesAdded={this.handleFilesAdded}
               onUrlsAdded={this.handleUrlsAdded}
             />

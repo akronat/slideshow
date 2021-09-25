@@ -1,6 +1,8 @@
+import DisplayStyle from './DisplayStyle';
 import TransitionStyle from './TransitionStyle';
 
 type SlideshowState = {
+  displayStyle: DisplayStyle;
   isBorderless: boolean;
   isFullscreen: boolean;
   isPlaying: boolean;
