@@ -27,9 +27,13 @@ class SlideManager {
     this.cache = new LruCache({ max: cacheSize, onEviction: (id, cd) => cd.cleanup() });
   }
 
+  private externalToPlaylistIndex(externalIndex: number) {
+    return modulo(externalIndex + this.indexOffset, this.playlist.length)
+  }
+
   getDataForIndex(index: number) {
-    const plIndex = modulo(index + this.indexOffset, this.playlist.length);
-    const source = this.sources[this.playlist[plIndex]];
+    const intplIndex = this.externalToPlaylistIndex(index);
+    const source = this.sources[this.playlist[intplIndex]];
     let data = this.cache.get(source.id);
     if (data) {
       return data;
@@ -96,12 +100,27 @@ class SlideManager {
     if (currentFileIndex >= 0) {
       this.playlist.unshift(currentFileIndex);
     }
-    this.indexOffset = -startAtIndex
+    this.indexOffset = -startAtIndex;
   }
 
   unshuffle({ startAtIndex = 0, startAtSid }: StartAt) {
     this.indexOffset = Math.max(0, this.sources.findIndex(s => s.id === startAtSid)) - startAtIndex;
     this.playlist = buildArray(this.sources.length, i => i);
+  }
+
+  removeSource(source: ContentSource) {
+    const sourceIndex = this.sources.findIndex((s) => s.id === source.id);
+    if (sourceIndex < 0) return;
+    this.sources.splice(sourceIndex, 1);
+    const newPlaylist: number[] = [];
+    this.playlist.forEach((plIndex) => {
+      if (plIndex < sourceIndex) {
+        newPlaylist.push(plIndex);
+      } else if (plIndex > sourceIndex) {
+        newPlaylist.push(plIndex - 1);
+      }
+    });
+    this.playlist = newPlaylist;
   }
 }
 

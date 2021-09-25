@@ -63,11 +63,13 @@ class ContentData {
   }
 
   load(onLoad: OnContentDataLoaded) {
-    if (this.state !== 'loaded') {
-      this.onLoaded.push(onLoad);
-      this.doLoad().then(this.handleLoaded, this.handleLoaded);
-    } else {
+    if (this.state === 'loaded') {
       this.callOnLoad(onLoad);
+    } else {
+      this.onLoaded.push(onLoad);
+      if (this.state === 'new') {
+        this.doLoad();
+      }
     }
   }
 
@@ -96,6 +98,7 @@ class ContentData {
         this.size = new Size(video.videoWidth, video.videoHeight);
       }
     }
+    this.handleLoaded();
   }
 
   private handleLoaded = () => {

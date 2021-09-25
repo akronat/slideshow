@@ -313,6 +313,7 @@ class SlideshowMain extends React.Component<Props, State> {
       isActive={isActive}
       displayStyle={ssState.displayStyle}
       volume={ssState.volume}
+      onSourceInvalid={(source) => ssController.removeSource(source)}
     />
   }
 

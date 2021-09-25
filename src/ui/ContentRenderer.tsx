@@ -8,6 +8,7 @@ import ContentType from '../api/ContentType';
 import ContentZoomPan from '../api/ContentZoomPan';
 import Size from '../util/Size';
 import DisplayStyle from '../api/DisplayStyle';
+import ContentSource from '../api/ContentSource';
 
 const styles = ({ palette, spacing }: Theme) => createStyles({
   root: {
@@ -35,9 +36,17 @@ interface Props extends WithStyles<typeof styles> {
   isActive: boolean;
   displayStyle?: DisplayStyle;
   volume?: number;
+  onSourceInvalid?: (source: ContentSource) => void;
 }
 const ContentRenderer: React.FC<Props> = ({
-  classes, className, data, duration = 0, isActive, displayStyle = DisplayStyle.Standard, volume = 0,
+  classes,
+  className,
+  data,
+  duration = 0,
+  isActive,
+  displayStyle = DisplayStyle.Standard,
+  volume = 0,
+  onSourceInvalid = () => undefined,
 }) => {
   const [dataUrl, setDataUrl] = React.useState('');
   const [error, setError] = React.useState('');
@@ -49,12 +58,16 @@ const ContentRenderer: React.FC<Props> = ({
     const onLoad = (err: string | undefined, url: string | undefined) => {
       setDataUrl(url ?? '');
       setError(err ?? '');
+      if (err) {
+        console.warn(`Unable to load "${data.contentSource.name}" as image or video: ${err}`);
+        onSourceInvalid(data.contentSource);
+      }
     };
     data.load(onLoad);
     return () => {
       data.cancelLoad(onLoad);
     };
-  }, [data]);
+  }, [data, onSourceInvalid]);
 
   const contentSize = data.getSize();
   const displaySize = new Size(rootRef.current?.clientWidth || 1, rootRef.current?.clientHeight || 1);
