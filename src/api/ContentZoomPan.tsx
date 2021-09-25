@@ -50,11 +50,19 @@ class ContentZoomPan {
           new PlanPoint(0.5, 1, 0.8, 0.05),
         ];
       }
+    } else {
+      this.scaleMult = 2;
+      const xOffset = cRat < 1 ? 0 : Math.random() * 0.2 - 0.1;
+      const yOffset = cRat > 1 ? 0 : Math.random() * 0.2 - 0.1;
+      this.plan = [
+        new PlanPoint(0.5 - xOffset, 0.5 - yOffset, 0.0, 0.05),
+        new PlanPoint(0.5 + xOffset, 0.5 + yOffset, 0.4, 0.05),
+      ];
+    }
+    if (this.plan.length > 1) {
       if (Math.random() < 0.5) {
         this.plan.reverse();
       }
-    }
-    if (this.plan.length > 1) {
       const totalPause = this.plan.reduce((p, c) => p + (c.d * duration), 0);
       this.transitionMs = (this.duration - totalPause) / (this.plan.length - 1);
     }
