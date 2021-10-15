@@ -3,14 +3,16 @@
   "author": "Akronat <akronat@does.not.exist.com>",
   "version": "0.1.0",
   "private": true,
-  "homepage": "./",
+  "homepage": "https://akronat.github.io/slideshow/",
   "main": "public/electron.js",
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "preebuild": "npm run build",
-    "ebuild": "electron-builder -wl -c.extraMetadata.main=build/electron.js -c.extraMetadata.homepage=./"
+    "ebuild": "electron-builder -wl -c.extraMetadata.main=build/electron.js -c.extraMetadata.homepage=./",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d build"
   },
   "browserslist": {
     "production": [
@@ -69,6 +71,7 @@
     "@types/react-hammerjs": "^1.0.1",
     "electron": "^10.1.4",
     "electron-builder": "^22.9.1",
+    "gh-pages": "^3.2.3",
     "react-scripts": "^4.0.0",
     "typescript": "^4.0.3"
   },
