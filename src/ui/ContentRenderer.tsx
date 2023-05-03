@@ -73,12 +73,14 @@ const ContentRenderer: React.FC<Props> = ({
   const contentType = data.getType();
   const displaySize = new Size(rootRef.current?.clientWidth || 1, rootRef.current?.clientHeight || 1);
   React.useEffect(() => {
-    if (isActive && displayStyle === DisplayStyle.ZoomPan && contentType === ContentType.Image) {
+    const isZoomPan = [DisplayStyle.ZoomPan, DisplayStyle.ZoomPanReturn].includes(displayStyle);
+    if (isActive && isZoomPan && contentType === ContentType.Image) {
       const zoomer = new ContentZoomPan(
         new Size(contentSize.width, contentSize.height),
         new Size(displaySize.width, displaySize.height),
         duration,
         setTransform,
+        displayStyle === DisplayStyle.ZoomPanReturn,
       );
       zoomer.start();
       return () => zoomer.stop();
@@ -87,7 +89,7 @@ const ContentRenderer: React.FC<Props> = ({
 
   const imgVidClassName = classnames(classes.content, {
     [classes.contentStretch]: displayStyle === DisplayStyle.Stretch,
-    [classes.contentZoomPan]: displayStyle === DisplayStyle.ZoomPan,
+    [classes.contentZoomPan]: [DisplayStyle.ZoomPan, DisplayStyle.ZoomPanReturn].includes(displayStyle),
   });
   let content = null;
   if (error) return content = <span>Error loading {data.contentSource.name}: {error}</span>;

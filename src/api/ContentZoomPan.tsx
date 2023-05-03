@@ -15,53 +15,106 @@ class PlanPoint {
   }
 }
 
+interface PathArgs {
+  contentRatio: number;
+  screenRatio: number;
+}
+type PathCreator = ((args: PathArgs) => PlanPoint[]);
+
+const widerRatioPaths: PathCreator[] = [
+  () => [
+    new PlanPoint(0.1, 0.5, 0.8, 0.05),
+    new PlanPoint(0.9, 0.5, 0.8, 0.05),
+    new PlanPoint(0.5, 0.5, 0.2, 0.05),
+  ],
+  () => [
+    new PlanPoint(0.9, 0.5, 0.8, 0.05),
+    new PlanPoint(0.1, 0.5, 0.8, 0.05),
+    new PlanPoint(0.5, 0.5, 0.2, 0.05),
+  ],
+];
+const tallerRatioPaths: PathCreator[] = [
+  () => [
+    new PlanPoint(0.5, 0.1, 0.8, 0.05),
+    new PlanPoint(0.5, 0.9, 0.8, 0.05),
+    new PlanPoint(0.5, 0.5, 0.2, 0.05),
+  ],
+  () => [
+    new PlanPoint(0.5, 0.9, 0.8, 0.05),
+    new PlanPoint(0.5, 0.1, 0.8, 0.05),
+    new PlanPoint(0.5, 0.5, 0.2, 0.05),
+  ],
+];
+const similarRatioPaths: PathCreator[] = [
+  ({ contentRatio }) => {
+    const xOffset = contentRatio < 1 ? 0 : Math.random() * 0.2 - 0.1;
+    const yOffset = contentRatio > 1 ? 0 : Math.random() * 0.2 - 0.1;
+    return [
+      new PlanPoint(0.5 + xOffset, 0.5 + yOffset, 0.4, 0.05),
+      new PlanPoint(0.5, 0.5, 0.2, 0.05),
+    ];
+  },
+  ({ contentRatio }) => {
+    const xOffset = contentRatio < 1 ? 0 : Math.random() * 0.2 - 0.1;
+    const yOffset = contentRatio > 1 ? 0 : Math.random() * 0.2 - 0.1;
+    return [
+      new PlanPoint(0.5 + xOffset, 0.5 + yOffset, 0.4, 0.05),
+      new PlanPoint(0.5, 0.5, 0.0, 0.05),
+    ];
+  },
+];
+
+const randomItem = function<T>(items: T[]) {
+  return items[Math.floor(Math.random() * items.length)];
+};
+
 class ContentZoomPan {
   contentSize: Size;
   screenSize: Size;
   duration: number;
   timer: number = 0;
   plan: PlanPoint[] = [];
+  doubleLoop: boolean;
   transitionMs: number;
   scaleMult: number = 1;
   current: number = 0;
   onTransform: (style: CSSProperties) => void = () => {};
 
-  constructor(contentSize: Size, screenSize: Size, duration: number, onTransform: (style: CSSProperties) => void) {
+  constructor(
+    contentSize: Size,
+    screenSize: Size,
+    duration: number,
+    onTransform: (style: CSSProperties) => void,
+    doubleLoop = false,
+  ) {
     this.contentSize = contentSize;
     this.screenSize = screenSize;
     this.duration = duration;
     this.onTransform = onTransform;
     this.transitionMs = duration;
-
+    this.doubleLoop = doubleLoop;
 
     const cRat = contentSize.ratio();
     const sRat = screenSize.ratio();
+    const args = { contentRatio: cRat, screenRatio: sRat };
     if (Math.abs(cRat - sRat) > 0.5) {
       if (cRat > sRat) {
         this.scaleMult = screenSize.height / (screenSize.width / cRat);
-        this.plan = [
-          new PlanPoint(0, 0.5, 0.8, 0.05),
-          new PlanPoint(1, 0.5, 0.8, 0.05),
-        ];
+        this.plan = randomItem(widerRatioPaths)(args);
       } else {
         this.scaleMult = screenSize.width / (screenSize.height * cRat);
-        this.plan = [
-          new PlanPoint(0.5, 0, 0.8, 0.05),
-          new PlanPoint(0.5, 1, 0.8, 0.05),
-        ];
+        this.plan = randomItem(tallerRatioPaths)(args);
       }
     } else {
       this.scaleMult = 2;
-      const xOffset = cRat < 1 ? 0 : Math.random() * 0.2 - 0.1;
-      const yOffset = cRat > 1 ? 0 : Math.random() * 0.2 - 0.1;
-      this.plan = [
-        new PlanPoint(0.5 - xOffset, 0.5 - yOffset, 0.0, 0.05),
-        new PlanPoint(0.5 + xOffset, 0.5 + yOffset, 0.4, 0.05),
-      ];
+      this.plan = randomItem(similarRatioPaths)(args);
     }
     if (this.plan.length > 1) {
       if (Math.random() < 0.5) {
         this.plan.reverse();
+      }
+      if (this.doubleLoop) {
+        this.plan = [...this.plan, ...[...this.plan].reverse().slice(1)];
       }
       const totalPause = this.plan.reduce((p, c) => p + (c.d * duration), 0);
       this.transitionMs = (this.duration - totalPause) / (this.plan.length - 1);

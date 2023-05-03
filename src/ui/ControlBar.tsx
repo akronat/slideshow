@@ -53,6 +53,9 @@ const styles = ({ palette, spacing }: Theme) => createStyles({
       flex: '1 1 0',
     },
   },
+  largeIcon: {
+    fontSize: '3rem'
+  },
   sideContainer: {
     display: 'flex',
     justifyContent: 'space-between',
@@ -82,16 +85,18 @@ const styles = ({ palette, spacing }: Theme) => createStyles({
   },
 });
 
-const displayStyleIcons = {
-  [DisplayStyle.Standard]: CropOriginalIcon,
-  [DisplayStyle.Stretch]: HeightIcon,
-  [DisplayStyle.ZoomPan]: ControlCameraIcon,
+const displayStyleIconRenderers = {
+  [DisplayStyle.Standard]: () => <CropOriginalIcon />,
+  [DisplayStyle.Stretch]: () => <HeightIcon />,
+  [DisplayStyle.ZoomPan]: () => <ControlCameraIcon />,
+  [DisplayStyle.ZoomPanReturn]: () => <Badge badgeContent={'2'}><ControlCameraIcon /></Badge>,
 };
 
 const displayStyleSequence = {
   [DisplayStyle.Standard]: DisplayStyle.Stretch,
   [DisplayStyle.Stretch]: DisplayStyle.ZoomPan,
-  [DisplayStyle.ZoomPan]: DisplayStyle.Standard,
+  [DisplayStyle.ZoomPan]: DisplayStyle.ZoomPanReturn,
+  [DisplayStyle.ZoomPanReturn]: DisplayStyle.Standard,
 };
 
 const transitionStyleIcons = {
@@ -145,7 +150,7 @@ const ControlBar: React.FC<Props> = ({
   const tmpInput = document.createElement('input');
   const dirPropName = ['webkitdirectory', 'mozdirectory', 'odirectory', 'msdirectory', 'directory'].find(p => p in tmpInput);
   const size = screenWidth && SIZE_THRESHOLDS.reduce((p, c, i) => screenWidth <= c ? i : p, -1);
-  const DisplayStyleIcon = displayStyleIcons[state.displayStyle];
+  const renderDisplayStyleIcon = displayStyleIconRenderers[state.displayStyle];
   const TransitionStyleIcon = transitionStyleIcons[state.transitionStyle];
   return (
     <div className={classnames(classes.root, className)}>
@@ -249,19 +254,19 @@ const ControlBar: React.FC<Props> = ({
           >
           <IconButton
             onClick={() => onShuffleChange(!state.isShuffled)}
-            title={state.isShuffled ? 'Shuffled' : 'Unshuffled'}
+            title={state.isShuffled ? 'Shuffle: On' : 'Shuffle: Off'}
           >
             {state.isShuffled ? <ShuffleIcon /> : <ArrowRightAltIcon />}
           </IconButton>
           <IconButton
             onClick={() => onDisplayStyleChange(displayStyleSequence[state.displayStyle])}
-            title={DisplayStyle[state.displayStyle]}
+            title={`Display: ${DisplayStyle[state.displayStyle]}`}
           >
-            <DisplayStyleIcon />
+            {renderDisplayStyleIcon()}
           </IconButton>
             <IconButton
               onClick={() => onTransitionStyleChange(transitionStyleSequence[state.transitionStyle])}
-              title={TransitionStyle[state.transitionStyle]}
+              title={`Transition: ${TransitionStyle[state.transitionStyle]}`}
             >
               <TransitionStyleIcon />
             </IconButton>
@@ -271,8 +276,9 @@ const ControlBar: React.FC<Props> = ({
       </div>
       <div className={classes.centreNavControls}>
         {!isMobile() && <IconButton onClick={onBack}><NavigateBeforeIcon /></IconButton>}
-        <IconButton onClick={() => (state.isPlaying ? onPause(): onPlay())}>
-          {state.isPlaying ? <PauseIcon /> : <PlayArrowIcon />}
+        <IconButton onClick={() => (state.isPlaying ? onPause(): onPlay())} size="small">
+          {state.isPlaying && <PauseIcon className={classes.largeIcon} />}
+          {!state.isPlaying && <PlayArrowIcon className={classes.largeIcon} />}
         </IconButton>
         {!isMobile() && <IconButton onClick={onNext}><NavigateNextIcon /></IconButton>}
       </div>

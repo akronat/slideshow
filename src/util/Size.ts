@@ -8,7 +8,7 @@ class Size {
   }
 
   ratio() {
-    return this.width /this.height;
+    return this.width / this.height;
   }
 }
 

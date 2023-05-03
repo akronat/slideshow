@@ -1,6 +1,6 @@
 import ContentData from './ContentData';
 
-const SpeedDelay = [25000, 15000, 10000, 5000, 2000];
+const SpeedDelay = [35000, 25000, 18000, 10000, 5000];
 
 class SlideshowTimer {
   onNext: () => void = () => {};
