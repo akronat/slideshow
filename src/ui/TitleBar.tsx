@@ -66,9 +66,24 @@ const TitleBar: React.FC<Props> = ({
       <Typography display="inline" variant="subtitle1">{slideTitle}</Typography>
     </div>
     <div className={classes.section}>
-      <IconButton className={classes.button} onClick={() => global.electronIpc?.send('minimize')}><MinimizeIcon /></IconButton>
-      <IconButton className={classes.button} onClick={() => global.electronIpc?.send('maximize')}><MaximizeIcon /></IconButton>
-      <IconButton className={classnames(classes.button, classes.closeButton)} onClick={() => global.electronIpc?.send('close')}><CloseIcon /></IconButton>
+      <IconButton
+        className={classes.button}
+        onClick={() => global.electronIpc?.minimize()}
+      >
+        <MinimizeIcon />
+      </IconButton>
+      <IconButton
+        className={classes.button}
+        onClick={() => global.electronIpc?.maximize()}
+      >
+        <MaximizeIcon />
+      </IconButton>
+      <IconButton
+        className={classnames(classes.button, classes.closeButton)}
+        onClick={() => global.electronIpc?.close()}
+      >
+        <CloseIcon />
+      </IconButton>
     </div>
   </div>
 );

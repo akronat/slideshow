@@ -254,7 +254,7 @@ class SlideshowMain extends React.Component<Props, State> {
       this.exitFullscreen();
       this.handlePlainSssChange({ isBorderless: false });
     }
-    else if (e.key === 'F12' && isElectron()) global.electronIpc?.send('openDevTools');
+    else if (e.key === 'F12' && isElectron()) global.electronIpc?.openDevTools();
     else {
       handled = false;
       // console.log('Unknown key pressed:', e);
