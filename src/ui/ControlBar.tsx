@@ -172,40 +172,45 @@ const ControlBar: React.FC<Props> = ({
               },
             }}
           >
-          {!isMobile() && (
-            // Disable folder selection of mobiles for now, since it's VERY
-            // iffy (i.e. I can't get it working at all...)
-            <IconButton component="label">
+            {!isMobile() && (
+              // Disable folder selection of mobiles for now, since it's VERY
+              // iffy (i.e. I can't get it working at all...)
+              <IconButton component="label" title="Add folders...">
+                <input
+                  type="file"
+                  hidden
+                  multiple
+                    onChange={ev => onFilesAdded(Array.from(ev.target.files as ArrayLike<File>))}
+                  // NOTE: Firefox Android requires the dom.webkitBlink.dirPicker.enabled
+                  // option to be set to true in about:config to allow picking of directories
+                  {...{ [dirPropName || 'multiple']: '' }}
+                />
+                <Badge badgeContent={'+'}><FolderOpenIcon /></Badge>
+              </IconButton>
+            )}
+            <IconButton component="label" title="Add files...">
               <input
                 type="file"
                 hidden
                 multiple
                   onChange={ev => onFilesAdded(Array.from(ev.target.files as ArrayLike<File>))}
-                // NOTE: Firefox Android requires the dom.webkitBlink.dirPicker.enabled
-                // option to be set to true in about:config to allow picking of directories
-                {...{ [dirPropName || 'multiple']: '' }}
               />
-              <Badge badgeContent={'+'}><FolderOpenIcon /></Badge>
+              <Badge badgeContent={'+'}><ImageIcon /></Badge>
             </IconButton>
-          )}
-          <IconButton component="label">
-            <input
-              type="file"
-              hidden
-              multiple
-                onChange={ev => onFilesAdded(Array.from(ev.target.files as ArrayLike<File>))}
-            />
-            <Badge badgeContent={'+'}><ImageIcon /></Badge>
-          </IconButton>
-          <IconButton component="label" onClick={() => setLinkInputOpen(true)}>
-            <Badge badgeContent={'+'}><LinkIcon /></Badge>
-          </IconButton>
+            <IconButton
+              component="label"
+              onClick={() => setLinkInputOpen(true)}
+              title="Add URLs..."
+            >
+              <Badge badgeContent={'+'}><LinkIcon /></Badge>
+            </IconButton>
           </MenuCollapser>
           <Dialog onClose={() => setLinkInputOpen(false)} open={linkInputOpen}>
             <DialogTitle>Enter URLs to add</DialogTitle>
             <DialogContent>
               <DialogContentText>
-                URLs can be for media, or for compilations of media, such as a pastebin with a URL on each line.
+                URLs can be for media such as a video or image
+                {/* , or for compilations of media, such as a pastebin with a URL on each line (not yet implemented). */}
               </DialogContentText>
               <TextField
                 autoFocus
@@ -221,12 +226,18 @@ const ControlBar: React.FC<Props> = ({
               />
             </DialogContent>
             <DialogActions>
-              <Button onClick={() => setLinkInputOpen(false)} color="primary">
+              <Button onClick={() => {
+                  setLinkInputOpen(false);
+                  setLinkUrls([]);
+                }}
+                color="primary"
+              >
                 Cancel
               </Button>
               <Button
                 onClick={() => {
                   onUrlsAdded(linkUrls);
+                  setLinkUrls([]);
                   setLinkInputOpen(false);
                 }}
                 color="primary"
