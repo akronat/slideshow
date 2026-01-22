@@ -7,7 +7,10 @@ interface Props {
 }
 const SliderSlide: React.FC<Props> = ({ slideState, slideContentRenderer }) => {
   const [slide, setSlide] = React.useState<React.ReactNode | undefined>(undefined);
-  React.useEffect(() => setSlide(slideContentRenderer(slideState)), [slideState, slideContentRenderer]); // TODO: Is this doing anything with slideState as dependency?
+  const { index, isActive } = slideState;
+  React.useEffect(() => {
+    setSlide(slideContentRenderer(slideState));
+  }, [index, isActive, slideContentRenderer]);
   return <React.Fragment>{slide}</React.Fragment>;
 };
 
