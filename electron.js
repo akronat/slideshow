@@ -62,7 +62,7 @@ const getSettings = (event) => {
       cachedSettings = JSON.parse(fs.readFileSync(filepath));
     } catch (e) {
       console.warn(`Error reading settings (it may not exist yet): ${e}`, e);
-      return {};
+      cachedSettings = {};
     }
   }
   event.returnValue = cachedSettings;
