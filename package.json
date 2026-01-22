@@ -9,10 +9,8 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    
     "predeploy": "npm run build",
     "deploy": "gh-pages -d build",
-
     "estart": "electron-forge start",
     "epack": "react-scripts build && electron-forge package",
     "ebuild": "react-scripts build && electron-forge make"
@@ -25,8 +23,7 @@
     ],
     "development": [
       "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
+      "last 1 firefox version"
     ]
   },
   "dependencies": {
@@ -52,9 +49,9 @@
     "@types/react": "^16.9.53",
     "@types/react-dom": "^16.9.8",
     "@types/react-hammerjs": "^1.0.1",
-    "electron": "^24.1.3",
-    "gh-pages": "^3.2.3",
-    "react-scripts": "^4.0.0",
+    "electron": "^40.0.0",
+    "gh-pages": "^6.3.0",
+    "react-scripts": "^5.0.1",
     "typescript": "^4.0.3"
   },
   "eslintConfig": {
